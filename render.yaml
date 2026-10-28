@@ -1,0 +1,45 @@
+# Reference configuration only. Importing this Blueprint can create a billable service.
+# The existing test service should be configured in place; do not create a duplicate.
+# No database, bucket, webhook, migration or seed is created by this file.
+services:
+  - type: web
+    name: TestSplint
+    runtime: docker
+    branch: main
+    region: frankfurt
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health/ready
+    autoDeployTrigger: off
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: ALLOW_DEV_AUTH
+        value: "false"
+      - key: MEDIA_STORAGE
+        value: r2
+      - key: STATIC_DIR
+        value: /app/apps/miniapp/dist
+      - key: APP_ORIGIN
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: BOT_TOKEN
+        sync: false
+      - key: BOT_USERNAME
+        sync: false
+      - key: WEBHOOK_SECRET
+        sync: false
+      - key: SESSION_ENCRYPTION_KEY
+        sync: false
+      - key: R2_ENDPOINT
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        sync: false
