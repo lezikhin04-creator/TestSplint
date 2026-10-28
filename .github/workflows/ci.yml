@@ -1,0 +1,54 @@
+name: Stage A checks
+on:
+  pull_request:
+  push:
+    branches: [main, 'codex/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ["17", "18"]
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}-bookworm
+        env:
+          POSTGRES_USER: splint_test
+          POSTGRES_PASSWORD: ci-only-database-password
+          POSTGRES_DB: splint_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U splint_test -d splint_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://splint_test:ci-only-database-password@127.0.0.1:5432/splint_test
+      TEST_DATABASE_URL: postgresql://splint_test:ci-only-database-password@127.0.0.1:5432/splint_test
+      ALLOW_DEV_AUTH: "true"
+      APP_ORIGIN: http://127.0.0.1:5173
+      MEDIA_STORAGE: local
+      LOCAL_MEDIA_DIR: ${{ github.workspace }}/.local/ci-media
+      SESSION_ENCRYPTION_KEY: ci-only-session-encryption-key-32-characters
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run db:migrate
+      - run: npm test
+      - run: npm run build
+      - name: Build production image without deploying
+        if: matrix.postgres == '18'
+        run: docker build --tag splint-stage-a:ci .

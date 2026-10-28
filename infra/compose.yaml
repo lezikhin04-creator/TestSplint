@@ -1,0 +1,22 @@
+# Optional local database only. Do not run alongside embedded PostgreSQL on the same port.
+services:
+  postgres:
+    image: postgres:18-bookworm
+    environment:
+      POSTGRES_USER: splint_local
+      POSTGRES_PASSWORD: ${LOCAL_POSTGRES_PASSWORD:?Set LOCAL_POSTGRES_PASSWORD in your shell or .env}
+      POSTGRES_DB: splint_dev
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      # PostgreSQL 18 changed the volume root; do not use the old /data mount.
+      - splint_pg18:/var/lib/postgresql
+      - ./postgres/init-test.sql:/docker-entrypoint-initdb.d/10-test.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U splint_local -d splint_dev"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+volumes:
+  splint_pg18:
